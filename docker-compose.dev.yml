@@ -1,0 +1,86 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hr-mysql-dev
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hr_db}
+      MYSQL_USER: ${MYSQL_USER:-hr_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hr_password}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - hr-dev-network
+
+  backend:
+    image: oven/bun:1-alpine
+    container_name: hr-backend-dev
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    command: sh -c "bun install && bun run start:dev"
+    environment:
+      PORT: ${BACKEND_PORT:-4000}
+      BACKEND_PORT: ${BACKEND_PORT:-4000}
+      NODE_ENV: development
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${MYSQL_USER:-hr_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-hr_password}
+      DB_DATABASE: ${MYSQL_DATABASE:-hr_db}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hr-dev-network
+
+  frontend:
+    image: oven/bun:1-alpine
+    container_name: hr-frontend-dev
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "bun install && bun run dev"
+    environment:
+      PORT: ${FRONTEND_PORT:-3000}
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:4000/api}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - hr-dev-network
+
+volumes:
+  mysql_dev_data:
+    driver: local
+
+networks:
+  hr-dev-network:
+    driver: bridge
