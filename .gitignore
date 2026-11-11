@@ -15,7 +15,6 @@ dist/
 
 # Bun
 bun.lockb
-bun.lock
 
 # Environment
 .env
