@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# NestJS build output
+dist/
+
+# Bun
+bun.lockb
+bun.lock
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.error.log*
+
+# OS / Editor
+.DS_Store
+*.pem
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+mysql_data/
